@@ -1,7 +1,7 @@
 # OKX Agentic Wallet — Research Reports
 
-This repository collects project research and security-review material for team discussion.
+Project research and security-review material for team discussion. This is a personal research repository, not an official OKX repository.
 
-Reports are proposed through pull requests so that findings, evidence, scope, and recommended follow-up work can be reviewed together.
+## Reports
 
-This is a personal research repository and is not an official OKX repository.
+- [Starx security review — 29 October 2026](reports/2026-10-29/starx/README.md): preliminary read-only review of curve access controls, with a PDF, editable report, remediation plan, and evidence package.

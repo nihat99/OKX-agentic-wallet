@@ -1,0 +1,366 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starx Security Review</title><style>
+    :root{--ink:#182a24;--green:#08734f;--lime:#bdf56a;--muted:#5f7168;--line:#d8e3da}
+    *{box-sizing:border-box}body{margin:0;background:#e8ede7;color:var(--ink);font:14px/1.62 system-ui,-apple-system,Segoe UI,sans-serif}
+    .report-page{position:relative;max-width:880px;margin:32px auto;background:white;box-shadow:0 8px 38px #18312415;padding:36px 58px 76px;break-after:page}
+    .hero{background:var(--ink);color:white;padding:32px 40px 34px;margin:-36px -58px 26px;border-left:8px solid var(--lime)}.brand{font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--lime)}.version{float:right;font-size:10px;letter-spacing:1px;color:#b9cec0;margin-top:10px}
+    .hero h1{font-size:44px;line-height:1.1;margin:30px 0 12px;letter-spacing:-1px}.hero p{color:#dce9de;margin:0 0 18px;font-size:19px}.hero .date{font-size:12px;margin:22px 0 0}.pill{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--lime)}
+    .topline{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;font-size:11px;color:var(--muted)}.topline b{color:var(--green);font-size:20px}.eyebrow{font-size:10px;letter-spacing:1.3px;font-weight:700;color:var(--green);margin-top:28px}h2{font-size:30px;line-height:1.2;letter-spacing:-.5px;margin:8px 0 25px}h3{font-size:17px;margin:26px 0 9px}p{margin:0 0 14px}li{margin-bottom:7px}ul{padding-left:22px}
+    a{color:var(--green);text-underline-offset:3px}table{width:100%;border-collapse:collapse;margin:18px 0;font-size:12px;table-layout:fixed;overflow-wrap:anywhere}th{text-align:left;background:var(--green);color:white;padding:11px}td{vertical-align:top;padding:11px;border-bottom:1px solid var(--line)}tr:nth-child(even){background:#f4f8f2}
+    blockquote{border-left:4px solid var(--green);background:#eff7ec;padding:16px 18px;margin:20px 0}blockquote p:last-child{margin-bottom:0}pre{background:#f2f5f1;border:1px solid var(--line);padding:15px;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.65 ui-monospace,monospace}code{font-family:ui-monospace,monospace}
+    footer{border-top:1px solid var(--line);margin-top:35px;padding-top:12px;font-size:9px;letter-spacing:.7px;color:var(--muted)}footer span{float:right}
+    @media(max-width:700px){.report-page{margin:0;padding:24px}.hero{margin:-24px -24px 24px;padding:28px 24px}.hero h1{font-size:34px}.version{float:none;display:block}.topline span{font-size:9px}td,th{padding:7px}h2{font-size:26px}}
+    @media print{body{background:white}.report-page{max-width:none;margin:0;box-shadow:none;padding:12mm 15mm;break-after:page}.hero{margin:-12mm -15mm 8mm}a{color:inherit}footer{position:static}@page{size:A4;margin:8mm}}
+    </style></head><body><section class="report-page"><header class="hero"><span class="brand">starx</span><span class="version">TEAM REVIEW / v1.0</span><h1>Security Review</h1><p>Curve access controls &amp; remediation plan</p><span class="pill">PRELIMINARY · READ-ONLY ASSESSMENT</span><p class="date">29 October 2026 · X Layer mainnet · Chain ID 196</p></header><div class="page-content"><p><strong>The tested rejection paths work. A complete bypass of the Agentic Wallet restriction has not been demonstrated.</strong></p>
+<p>This review examined whether Starx restricts bonding-curve trading to OKX Onchain OS Agentic Wallets. Public bytecode, pinned blockchain snapshots and selected client-source paths were inspected. Four zero-amount read-only simulations confirmed the expected rejection behavior.</p>
+<blockquote>
+<p><strong>DECISION FOR THE TEAM</strong></p>
+<p>Treat wallet-provenance enforcement as an open assurance question. The Starx gate checks delegation codehash and transaction gas price; the reviewed evidence does not establish the complete authorization behavior of the deployed SmartWallet.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Classification</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SR-01 · Wallet provenance</td>
+<td>Architecture risk; exploit unconfirmed</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>SR-02 · Administrative changes</td>
+<td>Confirmed design property</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>SR-03 · Source verification</td>
+<td>Review-completion blocker</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>SR-04 · Curve / pool scope</td>
+<td>Expected behavior; documentation</td>
+<td>P3</td>
+</tr>
+</tbody>
+</table>
+<p>Priorities describe the proposed order of work. They are not CVSS scores or confirmed exploit severities. All remediation below is proposed; no contract, application or wallet changes were deployed.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>01 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">01 / TEAM REVIEW</p><h2>Scope &amp; trust boundaries</h2><div class="page-content"><p>The review covered the public Starx frontend and npm CLI, contract ABIs and bytecode, blockchain getters, selected Onchain OS authorization paths, and the X Layer gasless mechanism. It focused on admission to the bonding curve, not the entire trading platform.</p>
+<pre><code class="language-text">Session-authorized client
+    ↓
+OKX signing / broadcast service
+    ↓
+ERC-4337 EntryPoint
+    ↓
+SmartWallet authorization [complete behavior unresolved]
+    ↓
+Starx: delegation codehash → zero gas price → trade validation
+</code></pre>
+<h3>What was verified</h3>
+<ul>
+<li>Live configuration at two pinned X Layer blocks; proxy implementation and matching runtime-code hash.</li>
+<li>The active token has graduated = false and locked = true.</li>
+<li>Ordinary-address rejection, and the gas-price rejection for an address with approved delegation.</li>
+<li>Gasless-target whitelist observations and the standard client path using an access token, session certificate and session signatures.</li>
+</ul>
+<h3>What remains outside the evidence</h3>
+<p>A successful nonzero trade, a complete alternative UserOperation, the deployed SmartWallet signature-validation paths, server-side OKX authorization, and full Solidity-level coverage were not established. Reentrancy, reserve accounting, rounding, MEV, API abuse and general frontend security were not comprehensively audited.</p>
+<blockquote>
+<p><strong>METHOD</strong></p>
+<p>Only public reads and zero-amount eth_call simulations were used. No wallet login, private-key access, signatures, approvals, transfers, transaction broadcasts, state overrides or account unlocking occurred.</p>
+</blockquote>
+<p>The from field in eth_call selects a simulated caller. It does not establish control over that address or prove that a corresponding transaction can be signed and included.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>02 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">02 / TEAM REVIEW</p><h2>Observed behavior &amp; test results</h2><div class="page-content"><p>The relevant active-curve token is 0x303d2f498bc46eE9963d517Dd12D34A115f5Cb8b. Results below are pinned to block 74,498,680. Every simulated trade used zero token amounts and zero native value.</p>
+<table>
+<thead>
+<tr>
+<th>Simulated condition</th>
+<th>Observed result</th>
+<th>What this establishes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ordinary address · buy · gas price 0</td>
+<td>NotAgentWallet</td>
+<td>Wallet gate rejects this caller</td>
+</tr>
+<tr>
+<td>Ordinary address · sell · gas price 0</td>
+<td>NotAgentWallet</td>
+<td>Wallet gate rejects this caller</td>
+</tr>
+<tr>
+<td>Approved delegation · buy · gas price 20,000,000 wei</td>
+<td>NotSponsored</td>
+<td>Nonzero gas price is rejected</td>
+</tr>
+<tr>
+<td>Approved delegation · buy · gas price 0</td>
+<td>ZeroAmount</td>
+<td>Execution reaches amount validation</td>
+</tr>
+</tbody>
+</table>
+<p>Calls: buy(token, 0, 0) and sell(token, 0, 0). ZeroAmount is a revert, not a successful trade. These are narrow rejection checks, not full-path or invariant tests.</p>
+<h3>Reconstructed Starx admission logic</h3>
+<p>The shared bytecode routine at program counter 0x388d corresponds to the following pseudocode. This is a reconstruction from ABI and opcodes, not verified Solidity source.</p>
+<pre><code class="language-solidity">if (!allowedCodehash[msg.sender.codehash])
+    revert NotAgentWallet(msg.sender);
+if (gaslessRequired &amp;&amp; tx.gasprice != 0)
+    revert NotSponsored();
+</code></pre>
+<h3>Additional observations</h3>
+<ul>
+<li>The ordinary probe address has empty code and isAgentWallet = false.</li>
+<li>The token creator has the approved 23-byte EIP-7702 delegation indicator and isAgentWallet = true.</li>
+<li>gaslessRequired = true; paused = false; upgradesFrozen = false.</li>
+<li>The ERC-4337 EntryPoint is a permitted full gasless target. The launchpad itself is not a permitted full gasless target.</li>
+</ul>
+<p>Evidence: token-303d-snapshot.json. The earlier block 74,498,079 independently records the allowed delegation codehash and additional whitelist getters.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>03 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">03 / TEAM REVIEW</p><h2>SR-01 · Wallet provenance assurance</h2><div class="page-content"><p><strong>P1 · Architecture risk</strong><br />
+Complete exploitability is unresolved</p>
+<h3>Observation</h3>
+<p>The Starx predicate recognizes an approved delegation codehash. EIP-7702 permits an EOA owner to authorize the same delegation indicator regardless of where that EOA was created. Matching code therefore establishes a delegation target, not creation or custody inside an OKX TEE. [S1]</p>
+<p>The zero-gas-price condition adds an execution-policy requirement. The observed X Layer whitelist allows the public ERC-4337 EntryPoint as a gasless target, so gas price alone is not an independent attestation of wallet origin. EntryPoint and SmartWallet authorization still apply. [S2, S3]</p>
+<h3>Impact and uncertainty</h3>
+<p>If an independently controlled account could satisfy the deployed SmartWallet authorization and network-inclusion requirements, the Starx gate alone would not prove OKX wallet provenance. That end-to-end condition was not tested or demonstrated. The reviewed client code uses authenticated OKX APIs and session certificates, but it does not reveal every alternative path accepted by the deployed SmartWallet. [S4, S5]</p>
+<h3>Recommended remediation</h3>
+<ul>
+<li>Define the intended policy: approved wallet implementation, OKX-created wallet provenance, or per-trade approval. These are distinct requirements.</li>
+<li>If provenance is required, use an enrollment registry or attestation issued by a source capable of verifying that provenance. Confirm provider support; no ready-made OKX attestation integration was established in this review.</li>
+<li>For action permits, bind the signer authorization to chain ID, verifying contract, wallet, operation, token, amounts, nonce and expiry. A wallet self-signature alone does not establish external provenance.</li>
+<li>Specify revocation and key-control-change behavior. Apply one consistent admission policy across create, buy and sell, with any exit-only exception explicitly designed and tested.</li>
+</ul>
+<blockquote>
+<p><strong>ACCEPTANCE CRITERIA</strong></p>
+<p>A local test must show that an unregistered account with the same delegation is rejected; replayed, expired, cross-chain and wrong-contract permits are rejected; revocation takes effect; and correctly enrolled wallets retain the intended functionality.</p>
+</blockquote>
+<p>Proposed owners: smart-contract engineering and security, with the OKX integration owner. No owner assignment or remediation completion has been confirmed.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>04 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">04 / TEAM REVIEW</p><h2>Governance &amp; product boundaries</h2><div class="page-content"><h3>SR-02 · Admission rules remain changeable</h3>
+<p><strong>P2 · Confirmed design property</strong><br />
+Governance hardening; no outsider exploit shown</p>
+<p>The launchpad is a proxy with a nonzero owner and upgradesFrozen = false. Its ABI exposes setGaslessRequired, setImpl and upgradeToAndCall; ownership checks were observed in the relevant setter bytecode. This makes administrative control part of the security model. It is not, by itself, a vulnerability.</p>
+<ul>
+<li>Document the authority to change implementations and admission rules.</li>
+<li>Evaluate multisig approval and a timelock for sensitive changes; separately define any emergency powers.</li>
+<li>Monitor implementation, owner, allowed-codehash and gasless-policy changes. Record each approved deployment.</li>
+<li>Only consider an irreversible upgrade freeze if the intended governance model requires it and the implementation has completed review.</li>
+</ul>
+<p>Acceptance: unauthorized callers cannot change settings; the intended approval process is tested; monitoring detects relevant changes. Proposed owners: protocol engineering and operations.</p>
+<h3>SR-04 · Clarify curve versus pool restrictions</h3>
+<p><strong>P3 · Expected behavior</strong><br />
+Documentation and test-scope correction</p>
+<p>The earlier STARX token at 0x795805EC11760cc2fdd69FaEef494a5E380B93b7 had graduated = true when read. The public Starx CLI README describes open trading in Uniswap V4 pools after graduation. A pool trade therefore does not demonstrate bypass of a curve-only restriction. [S6]</p>
+<ul>
+<li>Describe the restriction explicitly as applying to the bonding-curve phase wherever that is the intended policy.</li>
+<li>Keep curve and post-graduation pool tests separate. Check graduated at the pinned test block.</li>
+<li>Define the restricted contract, method, phase and admissible evidence in any public security challenge.</li>
+</ul>
+<p>Acceptance: product documentation and the challenge scope consistently describe graduation behavior. Proposed owners: product and protocol engineering.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>05 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">05 / TEAM REVIEW</p><h2>SR-03 · Complete source verification</h2><div class="page-content"><p><strong>P1 · Review-completion blocker</strong><br />
+Evidence limitation; not a demonstrated product bug</p>
+<p>Verified Solidity source matching the deployed Starx launchpad and the exact approved SmartWallet implementation was not obtained. Explorer requests were inaccessible in the review environment; the checked Sourcify lookups returned 404. This does not prove that source is unpublished.</p>
+<table>
+<thead>
+<tr>
+<th>Repository reviewed</th>
+<th>Relevant role</th>
+<th>Coverage achieved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>okx/agent-trade-kit</td>
+<td>Exchange-account MCP / CLI</td>
+<td>README and repository structure</td>
+</tr>
+<tr>
+<td>okx/agent-skills</td>
+<td>Exchange-operation instructions</td>
+<td>README and repository structure</td>
+</tr>
+<tr>
+<td>okx/xlayer-reth</td>
+<td>X Layer execution / gasless integration</td>
+<td>Selected source and dependency tracing</td>
+</tr>
+<tr>
+<td>okx/onchainos-skills</td>
+<td>Agentic Wallet client</td>
+<td>Selected session, signing and broadcast paths</td>
+</tr>
+</tbody>
+</table>
+<p>The four pinned repository trees contain no .sol files for these contracts. The execution-client dependency has separate whitelist Solidity source, which informed the gasless analysis. None of this substitutes for matching the deployed SmartWallet source and its signature-validation behavior.</p>
+<h3>Required evidence package</h3>
+<ul>
+<li>Exact Starx and SmartWallet source commits, ABIs, compiler versions, optimizer / via-IR settings, library links and immutable values.</li>
+<li>Deployment manifests connecting proxy, implementation, token implementation, hook, router, owner and chain ID.</li>
+<li>A reproducible runtime-bytecode match, including constructor and immutable handling.</li>
+<li>Documented signing modes, validator / module configuration, EntryPoint versions and required external authorizers.</li>
+</ul>
+<blockquote>
+<p><strong>CLOSURE</strong></p>
+<p>Close this item only after source-to-bytecode matching and the agreed local validation suite. Until then, report the result as a preliminary access-control review, not a complete audit or proof of safety.</p>
+</blockquote>
+<p>Proposed owners: protocol engineering, the OKX integration owner and security. The available client code demonstrates a session-authorized service path; backend enforcement was not audited.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>06 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">06 / TEAM REVIEW</p><h2>Remediation &amp; validation plan</h2><div class="page-content"><p>The following backlog is proposed for the team. Priorities are relative; no delivery dates, named assignees or completed fixes are implied.</p>
+<table>
+<thead>
+<tr>
+<th>Seq.</th>
+<th>Work item</th>
+<th>Proposed owner</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Define the exact admission invariant (SR-01)</td>
+<td>Product + security</td>
+<td>Policy and intended exceptions approved</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Obtain and match deployed sources (SR-03)</td>
+<td>Protocol + integration</td>
+<td>Reproducible bytecode match</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Test the complete authorization boundary locally</td>
+<td>Security + protocol</td>
+<td>Expected accept / reject matrix passes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Implement provenance / permit controls if required</td>
+<td>Smart-contract engineering</td>
+<td>Implementation and regression tests pass</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Harden administration (SR-02)</td>
+<td>Protocol + operations</td>
+<td>Change controls and monitoring verified</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Align documentation (SR-04)</td>
+<td>Product + protocol</td>
+<td>Curve / pool scope is explicit</td>
+</tr>
+</tbody>
+</table>
+<h3>Local validation suite to add</h3>
+<ul>
+<li>Authorization: plain EOA, approved / unapproved delegation, enrolled / unenrolled wallet, revoked wallet and supported UserOperation signing modes.</li>
+<li>Consistency: create, initial buy, buy and sell; any deliberately permitted withdrawal or exit path.</li>
+<li>Permits, if introduced: nonce reuse, expiry, wrong action / amount / token, chain and contract separation, and signer rotation.</li>
+<li>Governance: proxy initialization, owner transfer, allowed implementation changes, policy toggles and upgrades.</li>
+<li>Broader protocol review: callbacks / reentrancy, quote-token behavior, reserve invariants, rounding, wallet caps and graduation.</li>
+</ul>
+<p>These are proposed tests. They were not executed in this review. Use a controlled local fork or isolated test deployment, with meaningful nonzero values and full signature / execution paths.</p>
+<blockquote>
+<p><strong>RECOMMENDED STATUS WORDING</strong></p>
+<p>The tested ordinary-wallet and nonzero-gas-price calls are rejected. No unauthorized curve trade has been demonstrated. Full wallet-provenance assurance remains open pending source matching and complete authorization tests.</p>
+</blockquote></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>07 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">07 / TEAM REVIEW</p><h2>Technical appendix</h2><div class="page-content"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Address / value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network</td>
+<td>X Layer mainnet · chain ID 196</td>
+</tr>
+<tr>
+<td>Launchpad proxy</td>
+<td>0x37a3889888999c126D9E3e70ab8037fe486C9551</td>
+</tr>
+<tr>
+<td>Launchpad implementation</td>
+<td>0x538af113368cbdfcd2c590d884ba8a95a4c3fa72</td>
+</tr>
+<tr>
+<td>Approved wallet implementation</td>
+<td>0xe40ccb2d94975c51bff0c004efdfd9b3a5796fa4</td>
+</tr>
+<tr>
+<td>Active curve token</td>
+<td>0x303d2f498bc46eE9963d517Dd12D34A115f5Cb8b</td>
+</tr>
+<tr>
+<td>Token implementation</td>
+<td>0xf73590eed5d5226bd1f4b8b719fabd0e9df575ba</td>
+</tr>
+<tr>
+<td>EntryPoint v0.7</td>
+<td>0x0000000071727De22E5E9d8BAf0edAc6f37da032</td>
+</tr>
+<tr>
+<td>Gasless whitelist</td>
+<td>0x19787404b0c70021b4752028f7e3a92313885B27</td>
+</tr>
+<tr>
+<td>Launchpad owner</td>
+<td>0x623f089bbb315de3497814a3077903a9809ca95d</td>
+</tr>
+</tbody>
+</table>
+<h3>Pinned blocks</h3>
+<p>Initial state: block 74,498,079.</p>
+<pre><code class="language-solidity">0x372286ef326f6b635e1c65929c35e6c3134acd5e88754acade3f381e703b8e25
+</code></pre>
+<p>Active-curve checks: block 74,498,680.</p>
+<pre><code class="language-solidity">0x6ec0440483ca9e45bcf32f4270461adf8e9eefff26696dfd6ab84d4431fb4124
+</code></pre>
+<h3>Implementation identity</h3>
+<p>The launchpad implementation code is 16,586 bytes. Its Keccak-256 hash matches across the two snapshots:</p>
+<pre><code class="language-solidity">0xcec8a95b76f4535024d0b7fb3423d0f9677d2b8769bdc818c81bf72e735cb215
+</code></pre>
+<p>The earlier graduated-token reads used latest independently of the pinned active-curve snapshot. All configuration statements in this report describe the observed snapshots, not guaranteed future state.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>08 / 09</span></footer></section><section class="report-page"><div class="topline"><b>starx</b><span>29 October 2026 · v1.0</span></div><p class="eyebrow">08 / TEAM REVIEW</p><h2>Sources &amp; evidence handoff</h2><div class="page-content"><h3>Repository versions</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Commit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>okx/agent-trade-kit</td>
+<td>e5b60e4f0bc2afc75fab19c8360dafa6b84f3ed7</td>
+</tr>
+<tr>
+<td>okx/agent-skills</td>
+<td>f299d194d36c626a9a1d9a50245c8e1640b62230</td>
+</tr>
+<tr>
+<td>okx/xlayer-reth</td>
+<td>d32b20beed8c8b56a2449f00a24fe26288a55d48</td>
+</tr>
+<tr>
+<td>okx/onchainos-skills</td>
+<td>73904b636a0f022dcc13b6d7a0dd2ed3b3195f25</td>
+</tr>
+</tbody>
+</table>
+<h3>Primary references</h3>
+<ul>
+<li><strong>S1</strong> — <a href="https://eips.ethereum.org/EIPS/eip-7702">EIP-7702: delegation indicators and transaction origination</a></li>
+<li><strong>S2</strong> — <a href="https://github.com/okx/optimism/blob/0dca4b893f3d85dfa02209af9ff031822c4e3043/rust/alloy-op-evm/src/block/xlayer_gasless_contract.rs">X Layer gasless execution integration · pinned source</a></li>
+<li><strong>S3</strong> — <a href="https://github.com/okx/optimism/blob/0dca4b893f3d85dfa02209af9ff031822c4e3043/packages/contracts-bedrock/src/L2/XlayerGaslessWhitelistLatest.sol">Gasless whitelist rules · pinned source</a></li>
+<li><strong>S4</strong> — <a href="https://github.com/okx/onchainos-skills/blob/73904b636a0f022dcc13b6d7a0dd2ed3b3195f25/cli/src/wallet_api.rs">Onchain OS: unsigned-info and broadcast API client</a></li>
+<li><strong>S5</strong> — <a href="https://github.com/okx/onchainos-skills/blob/73904b636a0f022dcc13b6d7a0dd2ed3b3195f25/cli/src/commands/agentic_wallet/sign.rs">Onchain OS: session signatures and EIP-712 signing path</a></li>
+<li><strong>S6</strong> — <a href="https://registry.npmjs.org/starx-meme/1.0.1">Starx CLI 1.0.1 · package metadata and archived README</a></li>
+</ul>
+<p>The reviewed whitelist source was not fully matched to its live runtime code. Whitelist values cited in the report were read directly from the chain.</p>
+<h3>Evidence included with the report</h3>
+<ul>
+<li>Initial and active-token RPC snapshots, whitelist responses, earlier-token state and repository commit manifest.</li>
+<li>Launchpad disassembly, the read-only state helper, and the archived public CLI README / ABI.</li>
+<li>A SHA-256 manifest for detecting changes to the delivered evidence files.</li>
+</ul>
+<p>Raw RPC responses are observed evidence. Reconstructed pseudocode, architecture risks and proposed fixes are analysis. Suggested owners, priorities and acceptance tests are recommendations. This report was prepared with AI assistance and is not a formal security certification.</p></div><footer>STARX / PRELIMINARY ACCESS-CONTROL REVIEW <span>09 / 09</span></footer></section></body></html>
